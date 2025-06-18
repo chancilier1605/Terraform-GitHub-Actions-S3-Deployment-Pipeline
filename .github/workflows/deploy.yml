@@ -28,6 +28,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_IAM_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActionDeployRole 
 
       # Set up Terraform
       - name: Setup Terraform
