@@ -37,7 +37,7 @@ jobs:
       # Initialize Terraform
       - name: Terraform Init
         working-directory: ./infrastructure
-        run: terraform init
+        run: terraform init -input=false
 
       # Plan infrastructure changes
       - name: Terraform Plan
@@ -57,11 +57,10 @@ jobs:
        # run: echo "bucket_name=$(terraform output -raw s3_bucket_name)" >> $GITHUB_OUTPUT
       - name: Get S3 Bucket Name
         id: bucket-output
-        working-directory: ./infrastructure
         run: |
-        BUCKET_NAME=$(terraform output -raw s3_bucket_name)
-        echo "bucket_name=${BUCKET_NAME}" >> $GITHUB_OUTPUT
-        echo "bucket_name=${BUCKET_NAME}"  # For debugging
+          BUCKET_NAME=$(terraform output -raw s3_bucket_name)
+          echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
+          echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV  # Alternative method
 
       # Build your application (example for Node.js)
       - name: Install dependencies
