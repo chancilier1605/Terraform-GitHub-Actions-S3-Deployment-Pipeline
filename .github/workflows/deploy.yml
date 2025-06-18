@@ -1,0 +1,71 @@
+name: Deploy Application
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: "us-east-1"
+  APP_NAME: "my-web-app"
+  ENVIRONMENT: "prod"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Configure AWS credentials (using OIDC)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Set up Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      # Initialize Terraform
+      - name: Terraform Init
+        working-directory: ./infrastructure
+        run: terraform init
+
+      # Plan infrastructure changes
+      - name: Terraform Plan
+        working-directory: ./infrastructure
+        run: terraform plan -var "app_name=${{ env.APP_NAME }}" -var "environment=${{ env.ENVIRONMENT }}"
+
+      # Apply infrastructure changes (only on main branch)
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        working-directory: ./infrastructure
+        run: terraform apply -auto-approve -var "app_name=${{ env.APP_NAME }}" -var "environment=${{ env.ENVIRONMENT }}"
+
+      # Get S3 bucket name from Terraform output
+      - name: Get S3 Bucket Name
+        id: get-bucket
+        working-directory: ./infrastructure
+        run: echo "bucket_name=$(terraform output -raw s3_bucket_name)" >> $GITHUB_OUTPUT
+
+      # Build your application (example for Node.js)
+      - name: Install dependencies
+        working-directory: ./src
+        run: npm install
+
+      - name: Build application
+        working-directory: ./src
+        run: npm run build
+
+      # Deploy application to S3
+      - name: Deploy to S3
+        run: |
+          aws s3 sync ./src/dist s3://${{ steps.get-bucket.outputs.bucket_name }} --delete
+          aws s3 cp ./src/error.html s3://${{ steps.get-bucket.outputs.bucket_name }}/error.html
