@@ -21,3 +21,12 @@ variable "terraform_state_bucket" {
   type        = string
   default     = "terraform-s3-staticwebsite" 
 }
+
+variable "tags" {
+  description = "Common tags for all resources"
+  type        = map(string)
+  default = {
+    Environment = "dev"
+    Terraform   = "true"
+  }
+}
